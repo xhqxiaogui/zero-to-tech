@@ -1,0 +1,30 @@
+# ============================================================
+# Auto Deploy —— push 后自动 SSH 到服务器执行 git pull
+# 用法：把本文件放到仓库根目录 .github/workflows/deploy.yml
+# ============================================================
+name: Auto Deploy
+
+on:
+  push:
+    branches:
+      - main          # 主干分支是 master 就改成 master
+
+jobs:
+  deploy:
+    name: Pull code on server
+    runs-on: ubuntu-latest
+    steps:
+      # appleboy/ssh-action 是 GitHub Actions 里最常用的 SSH 部署方案
+      - name: SSH to server & git pull
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}        # 服务器 IP 或域名（如 123.45.67.89）
+          username: ${{ secrets.SERVER_USER }}    # 登录用户名（如 root 或 deploy）
+          key: ${{ secrets.SERVER_SSH_KEY }}      # 服务器登录私钥（完整内容含 BEGIN/END 行）
+          script: |
+            cd ${{ secrets.SERVER_PATH }}         # 项目在服务器上的绝对路径（如 /www/myapp）
+            git pull origin main
+            # ------- 按需放开下面任一行来重启服务 -------
+            # pm2 restart app
+            # sudo systemctl restart myapp
+            # cd backend && pip install -r requirements.txt 之后重启
