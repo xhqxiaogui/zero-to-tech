@@ -1,7 +1,8 @@
 # ============================================================
-# Auto Deploy —— push 后自动 SSH 到服务器：git pull + npm install + npm run build
+# Auto Deploy —— push 后自动 SSH 到服务器：git pull + npm install + next build
 # 位置：仓库根目录 .github/workflows/deploy.yml
-# 说明：脚本内加了 [n/6] 进度标记，失败时看 Actions 日志最后一行标记即可定位
+# 说明：Next.js 已配置 output: 'export'，构建产物是 out/（纯静态）
+#       脚本内加了 [n/6] 进度标记，失败时看日志最后一行标记即可定位
 # ============================================================
 
 name: Auto Deploy
@@ -34,8 +35,7 @@ jobs:
             git log --oneline -1
 
             echo "===== [2/6] load node (nvm) ====="
-            # 关键修复：非交互式 SSH 不加载 ~/.bashrc，所以 nvm 必须手工 source
-            # （服务器是 nvm 装的 node，不 source 就会 node: command not found）
+            # 关键：非交互式 SSH 不加载 ~/.bashrc，nvm 必须手工 source
             export NVM_DIR="$HOME/.nvm"
             if [ -s "$NVM_DIR/nvm.sh" ]; then . "$NVM_DIR/nvm.sh"; fi
             if ! command -v node >/dev/null 2>&1; then
@@ -44,33 +44,33 @@ jobs:
             fi
             echo "node=$(node -v) npm=$(npm -v)"
 
-            echo "===== [3/6] node version check (vite 8 needs ^20.19.0 || >=22.12.0) ====="
-            node -e "const v=process.versions.node.split('.').map(Number);const ok=(v[0]===20&&v[1]>=19)||(v[0]>=22&&(v[0]>22||v[1]>=12));if(!ok){console.error('NODE VERSION TOO OLD: '+process.versions.node+' ; need 20.19+ or 22.12+');process.exit(1)}console.log('node version OK: '+process.versions.node)"
+            echo "===== [3/6] node version check (next 15 needs >= 18.18) ====="
+            node -e "const v=process.versions.node.split('.').map(Number);const ok=v[0]>18||(v[0]===18&&v[1]>=18);if(!ok){console.error('NODE VERSION TOO OLD: '+process.versions.node+' ; need >= 18.18');process.exit(1)}console.log('node version OK: '+process.versions.node)"
 
             echo "===== [4/6] npm install ====="
             # 服务器访问官方源慢时，取消下一行注释换国内镜像
             # npm config set registry https://registry.npmmirror.com
             npm install --no-audit --no-fund
 
-            echo "===== [5/6] npm run build ====="
-            export NODE_OPTIONS=--max-old-space-size=2048
-            # 备份当前产物，构建失败自动回滚，避免线上 dist 被清空
-            rm -rf .dist_prev
-            if [ -d dist ]; then mv dist .dist_prev; fi
+            echo "===== [5/6] npm run build (next build -> out/) ====="
+            # 服务器内存小（1.7G 无 swap），堆上限别设太大，否则易被 OOM kill
+            export NODE_OPTIONS=--max-old-space-size=1536
+            # 备份当前产物，构建失败自动回滚，避免线上目录被清空
+            rm -rf .out_prev
+            if [ -d out ]; then mv out .out_prev; fi
             if npm run build; then
-              rm -rf .dist_prev
+              rm -rf .out_prev
               echo "build ok"
             else
-              echo "!! build failed, rolling back previous dist"
-              rm -rf dist
-              if [ -d .dist_prev ]; then mv .dist_prev dist; fi
+              echo "!! build failed, rolling back previous out"
+              rm -rf out
+              if [ -d .out_prev ]; then mv .out_prev out; fi
               exit 1
             fi
 
-            echo "===== [6/6] dist output ====="
-            ls -lh dist
+            echo "===== [6/6] verify static output ====="
+            test -f out/index.html || { echo "!! out/index.html missing - check next.config.mjs has output:'export'"; exit 1; }
+            ls -lh out | head -20
+            du -sh out
 
-            # 前端静态产物无需重启服务（nginx 直接读 dist）；有后端进程再按需重启：
-            # pm2 restart app
-            # sudo systemctl restart myapp
-            #我来试试
+            # nginx 直接读 /root/zero-to-tech/out，静态产物无需重启服务
