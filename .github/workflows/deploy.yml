@@ -1,7 +1,8 @@
 # ============================================================
-# Auto Deploy —— push 后自动 SSH 到服务器执行 git pull
+# Auto Deploy —— push 后自动 SSH 到服务器：git pull + 重新构建 dist
 # 用法：把本文件放到仓库根目录 .github/workflows/deploy.yml
 # ============================================================
+
 name: Auto Deploy
 
 on:
@@ -11,20 +12,44 @@ on:
 
 jobs:
   deploy:
-    name: Pull code on server
+    name: Pull code & build on server
     runs-on: ubuntu-latest
     steps:
       # appleboy/ssh-action 是 GitHub Actions 里最常用的 SSH 部署方案
-      - name: SSH to server & git pull
+      - name: SSH to server, git pull & rebuild
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SERVER_HOST }}        # 服务器 IP 或域名（如 123.45.67.89）
-          username: ${{ secrets.SERVER_USER }}    # 登录用户名（如 root 或 deploy）
-          key: ${{ secrets.SERVER_SSH_KEY }}      # 服务器登录私钥（完整内容含 BEGIN/END 行）
+          host: ${{ secrets.SERVER_HOST }}       # 服务器 IP 或域名（如 123.45.67.89）
+          username: ${{ secrets.SERVER_USER }}   # 登录用户名（root 或 deploy）
+          key: ${{ secrets.SERVER_SSH_KEY }}     # 服务器登录私钥（完整内容含 BEGIN/END 行）
+          script_stop: true                      # 任一行失败就中断（等价 set -e）
+          command_timeout: 10m                   # 构建耗时较长，放宽超时（默认 10m 足够，可调）
           script: |
-            cd ${{ secrets.SERVER_PATH }}         # 项目在服务器上的绝对路径（如 /www/myapp）
-            git pull origin main
-            # ------- 按需放开下面任一行来重启服务 -------
+            set -e
+
+            # ---------- 1. 进入项目目录 ----------
+            cd /root/zero-to-tech
+
+            # ---------- 2. 拉取最新代码 ----------
+            git fetch origin main
+            git reset --hard origin/main     # 强制与远程一致
+            # 若不想丢弃服务器上的本地改动，把它换成：git pull origin main
+
+            # ---------- 3. 确认 Node 环境 ----------
+            # node 已装好也要自检：SSH 非交互 shell 的 PATH 可能和登录时不一样
+            echo "PATH=$PATH"
+            which node && node -v && npm -v || echo "!! node 不在当前 PATH，走下方兜底"
+            # 若上一行没打印出版本号，把 which node 查到的目录填进下面这行并取消注释：
+            # export PATH="/usr/local/node/bin:$PATH"
+
+            # ---------- 4. 安装依赖 & 构建 ----------
+            npm install
+            npm run build
+
+            # ---------- 5. 校验产物 ----------
+            echo "==== build output ===="
+            ls -lh dist
+
+            # ---------- 6. 按需重启后端（前端 dist 不用重启，nginx 直接读目录） ----------
             # pm2 restart app
-            # sudo systemctl restart myapp
-            # cd backend && pip install -r requirements.txt 之后重启
+            # sudo systemctl restart myapp      
