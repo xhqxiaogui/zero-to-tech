@@ -73,3 +73,4 @@ jobs:
             # 前端静态产物无需重启服务（nginx 直接读 dist）；有后端进程再按需重启：
             # pm2 restart app
             # sudo systemctl restart myapp
+            #我来试试
