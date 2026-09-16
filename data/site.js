@@ -6,7 +6,7 @@
 // 它们可以改成从网络接口实时取——而组件那边照样一个字都不用动。
 
 export const home = {
-  heroTitle: "关于我",
+  heroTitle: "关于我前端静态",
   heroSubtitle: "项目，创意，灵感，心得，我的作品",
   featuredWork: {
     kicker: "作品",
@@ -16,7 +16,7 @@ export const home = {
   },
   identity: {
     motto: "已识乾坤大，尤怜草木青",
-    learning: "零到全栈",
+    learning: "零到全栈小海豚",
   },
 };
 
