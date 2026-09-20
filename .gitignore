@@ -23,4 +23,11 @@ dist/
 backend/.venv/
 backend/__pycache__
 *.pyc
+
+# sqlite 数据库（含 WAL 模式的兄弟文件），不要提交运行期数据
 backend/*.db
+backend/*.db-journal
+backend/*.db-wal
+backend/*.db-shm
+backend/*.sqlite
+backend/*.sqlite3
