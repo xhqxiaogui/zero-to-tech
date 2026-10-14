@@ -40,7 +40,7 @@ def get_session_id(request: Request, response: Response) -> str:
 
 
 profile = {
-    "heroTitle": "关于我（来自API）",  # → 临时加的标记，验证完删掉
+    "heroTitle": "关于我（来自API更新的）",  # → 临时加的标记，验证完删掉
     "heroSubtitle": "项目，创意，灵感，心得，我的作品",
     "featuredWork": {
         "kicker": "作品",
@@ -50,7 +50,7 @@ profile = {
     },
     "identity": {
         "motto": "已识乾坤大，尤怜草木青",
-        "learning": "零到全栈龟龟学习",
+        "learning": "零到全栈龟龟2学习",
     },
 }
 
