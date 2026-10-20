@@ -1,7 +1,11 @@
 # backend/storage.py
+import os
 import sqlite3
 
-DB_FILE = "history.db"
+# 用绝对路径，绝不能写成 "history.db"：
+# 相对路径取决于进程的工作目录，systemd / uvicorn / 手动启动的工作目录不同，
+# 就会各自创建一份空库，表现就是"之前的记录突然没了"。
+DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "history.db")
 
 def get_conn():
     conn = sqlite3.connect(DB_FILE)

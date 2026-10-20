@@ -18,6 +18,7 @@ dist/
 *.log
 .env*
 !.env.example
+.workbuddy/
 
 
 backend/.venv/

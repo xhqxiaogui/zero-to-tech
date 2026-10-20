@@ -5,8 +5,6 @@ from pypinyin import lazy_pinyin, Style
 from snownlp import SnowNLP
 
 from datetime import datetime, timezone
-from storage import save_record, get_history
-
 from storage import init_db, save_record, get_history
 import uuid
 from fastapi import Request, Response
@@ -14,7 +12,10 @@ import os
 from dotenv import load_dotenv
 load_dotenv()                        # ← 读同目录下的 .env
 
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS").split(",")
+# 兜底：万一 .env 丢了/漏配，也不至于在启动时就 AttributeError 崩掉
+ALLOWED_ORIGINS = (
+    os.getenv("ALLOWED_ORIGINS") or "http://localhost:3000"
+).split(",")
 
 
 app = FastAPI()

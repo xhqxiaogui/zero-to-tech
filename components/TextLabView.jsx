@@ -12,20 +12,31 @@ import ResultCard from "./ResultCard.jsx";
 import HistoryModal from "./HistoryModal.jsx";
 import { textLab } from "../data/site.js";
 
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
+// 用 ?? 而不是 ||：线上构建时这个变量是空字符串（同源相对路径），
+// 若用 || 兜底会把空串替换成 localhost:8000，线上就会去请求用户自己的电脑。
+const API = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 export default function TextLabView() {
   const [result, setResult] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyError, setHistoryError] = useState("");
 
   async function openHistory() {
     setHistoryOpen(true);
+    setHistoryError("");
     try {
       const res = await fetch(`${API}/api/history`, { credentials: "include" });
+      if (!res.ok) {
+        throw new Error(`请求失败：HTTP ${res.status}`);
+      }
       setHistory(await res.json());
-    } catch {
-      // 后端没起来时不让页面崩掉，弹窗显示"还没有记录"
+    } catch (error) {
+      // 不让页面崩掉，但要把原因显示出来——否则"后端没开"和"真没记录"看起来一模一样
+      setHistory([]);
+      setHistoryError(
+        `加载历史失败（${error.message}）。检查：后端是否在 ${API} 运行、地址栏 host 是否与 API 一致。`
+      );
     }
   }
 
@@ -42,6 +53,7 @@ export default function TextLabView() {
       <HistoryModal
         open={historyOpen}
         items={history}
+        error={historyError}
         onClose={() => setHistoryOpen(false)}
       />
     </AnimatedCardGrid>
