@@ -26,7 +26,7 @@ export default function TextLabView() {
     setHistoryOpen(true);
     setHistoryError("");
     try {
-      const res = await fetch(`${API}/api/history`, { credentials: "include" });
+      const res = await fetch(`${API}/api/history?limit=20`, { credentials: "include" });
       if (!res.ok) {
         throw new Error(`请求失败：HTTP ${res.status}`);
       }

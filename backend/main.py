@@ -91,6 +91,6 @@ def analyze(req: AnalyzeRequest, request: Request, response: Response):
 
 
 @app.get("/api/history")
-def history(request: Request, response: Response, limit: int = 10):
+def history(request: Request, response: Response, limit: int = 20):
     sid = get_session_id(request, response)
     return get_history(sid, limit)    # 只回这个会话自己的
